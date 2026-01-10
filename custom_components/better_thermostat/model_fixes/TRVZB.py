@@ -175,6 +175,7 @@ async def maybe_set_sonoff_valve_percent(self, entity_id, percent: int) -> bool:
             name = (getattr(ent, "original_name", None) or "").lower()
             if (
                 "valve_opening_degree" in en
+                or "ventiloffnungswinkel" in en
                 or "valve_opening_degree" in uid
                 or "valve opening degree" in name
             ):
@@ -182,6 +183,7 @@ async def maybe_set_sonoff_valve_percent(self, entity_id, percent: int) -> bool:
                 continue
             if (
                 "valve_closing_degree" in en
+                or "ventilschliesswinkel" in en
                 or "valve_closing_degree" in uid
                 or "valve closing degree" in name
             ):
@@ -573,14 +575,23 @@ async def maybe_set_external_temperature(self, entity_id, temperature: float) ->
                 entity_id,
             )
             return False
-        target = _find_device_entity(
-            entity_registry,
-            reg_entity.device_id,
-            "number",
-            _TK_EXTERNAL_TEMP,
-            "external_temperature_input",
-        )
-        if target is None:
+        device_id = reg_entity.device_id
+        target_entities = []
+        for ent in entity_registry.entities.values():
+            if ent.device_id != device_id or ent.domain != "number":
+                continue
+            en = (ent.entity_id or "").lower()
+            uid = (ent.unique_id or "").lower()
+            name = (getattr(ent, "original_name", None) or "").lower()
+            if (
+                "external_temperature_input" in en
+                or "wert_des_externen_temperatursensors" in en
+                or "external_temperature_input" in uid
+                or "external temperature input" in name
+            ):
+                target_entities.append(ent.entity_id)
+
+        if not target_entities:
             _LOGGER.debug(
                 "better_thermostat %s: TRVZB external_temperature_input number entity not found for %s",
                 self.device_name,
